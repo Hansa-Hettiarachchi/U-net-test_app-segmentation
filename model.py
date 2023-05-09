@@ -37,4 +37,27 @@ class UNET(nn.Module):
             
         self.bottleneck = DoubleConv(features[-1], features[-1]*2) # bottleneck layer layer in the bottom of UNET
         self.final_conv = nn.Conv2d(features[0], out_channels, kernel_size=1) # final layer to get the output
-        
+
+    def forward(self, x):
+        skip_connections = []
+        for down in self.downs:
+            x = down(x)
+            skip_connections.append(x)
+            x = self.pool(x)
+
+        x = self.bottleneck(x)
+        skip_connections = skip_connections[::-1] # reverse the list
+
+        #up sampling of Unet 
+        for idx in range(0 ,  len(self.ups),2):
+            x = self.ups[idx](x)
+            skip_connection = skip_connections[idx//2]
+            
+            # if the size of the skip connection is not equal to the size of the x
+            if x.shape != skip_connection.shape:
+                x = TF.resize(x, size=skip_connection.shape[2:])
+
+            concat_skip = torch.cat((skip_connection, x), dim=1)
+            x = self.ups[idx+1](concat_skip)
+
+        return self.final_conv(x)
