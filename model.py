@@ -34,3 +34,7 @@ class UNET(nn.Module):
                 nn.ConvTranspose2d(feature*2, feature, kernel_size=2, stride=2))
             self.ups.append(
                 DoubleConv(feature*2, feature))
+            
+        self.bottleneck = DoubleConv(features[-1], features[-1]*2) # bottleneck layer layer in the bottom of UNET
+        self.final_conv = nn.Conv2d(features[0], out_channels, kernel_size=1) # final layer to get the output
+        
