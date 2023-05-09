@@ -9,4 +9,28 @@ class DoubleConv(nn.Module):
             nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1, stride=1 , bias=False), # same padding
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True),
+            nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1, stride=1 , bias=False), # same padding
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(inplace=True),
         )
+    def forward(self, x):
+        return self.conv(x)
+    
+class UNET(nn.Module):
+    def __init__(self, in_channels = 3, out_channels = 1, features = [64, 128, 256, 512]):
+        super(UNET, self).__init__()
+        self.ups = nn.ModuleList() #importent  for eval 
+        self.downs = nn.ModuleList()
+        self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
+
+        #down part of UNET
+        for feature in features:
+            self.downs.append(DoubleConv(in_channels, feature))
+            in_channels = feature
+
+        #up part of UNET
+        for feature in reversed(features):
+            self.ups.append(
+                nn.ConvTranspose2d(feature*2, feature, kernel_size=2, stride=2))
+            self.ups.append(
+                DoubleConv(feature*2, feature))
